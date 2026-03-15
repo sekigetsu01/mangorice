@@ -1,0 +1,95 @@
+#!/bin/sh
+
+# Use neovim for vim if present.
+[ -x "$(command -v nvim)" ] && alias vim="nvim" vimdiff="nvim -d"
+
+# sudo not required for some system commands
+for command in mount umount sv pacman updatedb su shutdown poweroff reboot ; do
+	alias $command="sudo $command"
+done; unset command
+
+se() {
+	choice="$(find ~/.local/bin -mindepth 1 -printf '%P\n' | fzf)"
+	[ -f "$HOME/.local/bin/$choice" ] && $EDITOR "$HOME/.local/bin/$choice"
+	}
+
+# Verbosity and settings that you pretty much just always are going to want.
+alias \
+	cp="cp -iv" \
+	mv="mv -iv" \
+	rm="rm -rf" \
+	bc="bc -ql" \
+	rsync="rsync -vrPlu" \
+	mkd="mkdir -pv" \
+	yt="yt-dlp --embed-metadata -i" \
+	yta="yt-dlp -x -f bestaudio/best --embed-chapters" \
+	mpvl="mpv --loop" \
+	ffmpeg="ffmpeg -hide_banner" \
+
+# Colorize commands when possible.
+alias \
+	ls="ls -hN --color=auto --group-directories-first" \
+	grep="grep --color=auto" \
+	diff="diff --color=auto" \
+	ccat="highlight --out-format=ansi" \
+	ip="ip -color=auto" \
+
+# These common commands are just too long! Abbreviate them.
+alias \
+	ka="killall" \
+	f="fastfetch" \
+	v="nvim" \
+	sy="syncthing" \
+	c="cd" \
+	Ss="sudo pacman -Ss" \
+	b="setwp" \
+	g="git" \
+	YT="youtube-viewer" \
+	sdn="shutdown -h now" \
+	e='$EDITOR' \
+	p="sudo pacman -Syu" \
+	pd="sudo pacman -Rns" \
+	Ss="pacman -Ss" \
+	z="zathura" \
+	ff="fastfetch" \
+	mci="sudo make clean install" \
+	cm="chmod 777" \
+	sip="curl ipinfo.io" \
+	sy="syncthing" \
+	xo="xdg-open" \
+	c="cd" \
+	vp="vpn-startup" \
+	vpn="vpn-setup" \
+	y="yazi" \
+	l="yazi" \
+	i="swayimg"
+
+
+
+
+alias \
+	magit="nvim -c MagitOnly" \
+
+
+# shortcut directories
+	alias pp="yazi ~/Pictures"
+	alias wp="yazi ~/sync//wallpapers"
+	alias S="yazi ~/sync"
+	alias L="yazi ~/Library"
+	alias cf="cd ~/.config && ls"
+	alias cac="cd ~/.cache && ls"
+	alias sc="cd ~/.local/bin && ls"
+	alias D="cd ~/Downloads && ls"
+	alias d="cd ~/Documents && ls"
+	alias dt="cd ~/.local/share && ls"
+	alias gi="cd ~/github && ls"
+	alias W="cd ~/sync/wallpapers && ls"
+	alias rv="cd ~/RiseupVPN-OpenVPN && ls"
+	alias n= "cd ~/sync/notebook && ls"
+	alias co="cd ~/sync/programming && ls"
+	alias sf="cd ~/sync/school && ls"
+
+
+# shortcut files
+	alias cfv="v ~/.config/nvim/init.vim"
+	alias cfz="v ~/.zshrc"
