@@ -1,0 +1,116 @@
+* {
+    background-color: transparent;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    spacing: 0;
+    background: {color0};
+    foreground: {color6};
+    border-color: {color8};
+    normal-background: {color0};
+    normal-foreground: {color7};
+    alternate-normal-background: {color0};
+    alternate-normal-foreground: {color7};
+    selected-normal-background: {color2};
+    selected-normal-foreground: {color0};
+    active-background: {color2};
+    active-foreground: {color0};
+    alternate-active-background: {color0};
+    alternate-active-foreground: {color7};
+    selected-active-background: {color1};
+    selected-active-foreground: {color0};
+    urgent-background: {color1};
+    urgent-foreground: {color0};
+    alternate-urgent-background: {color0};
+    alternate-urgent-foreground: {color7};
+    selected-urgent-background: {color1};
+    selected-urgent-foreground: {color0};
+}
+configuration {
+    font: "JetBrainsMono Nerd Font Medium 12.5";
+    show-icons: false;
+    hide-scrollbar: true;
+    location: 0;
+    kb-row-up: "Up,Control+k";
+    kb-row-down: "Down,Control+j";
+    kb-row-left: "Left,Control+h";
+    kb-row-right: "Right,Control+l";
+    kb-accept-entry: "Control+z,Control+y,Return,KP_Enter";
+    kb-remove-to-eol: "";
+    kb-move-char-back: "Control+b";
+    kb-move-char-forward: "Control+f";
+    kb-remove-char-back: "BackSpace";
+    kb-mode-complete: "Control+o";
+    cycle: true;
+    case-sensitive: false;
+    matching: "fuzzy";
+}
+window {
+    width: 600;
+    height: 450;
+    border-radius: 16px;
+    transparency: "real";
+    orientation: vertical;
+    border-width: 20px;
+    background-color: {color0};
+    border-color: {color5};
+}
+mainbox {
+    children: [inputbar, listview];
+    padding: 2;
+    spacing: 6;
+}
+inputbar {
+    children: [prompt, entry];
+    border-radius: 12px;
+    text-color: {color7};
+    padding: 4 4 -1 4;
+    border-width: 0 0 2px 0;
+    border-color: {color8};
+}
+prompt {
+    padding: 12 6 10 10;
+    text-color: {color5};
+}
+entry {
+    placeholder: "Search";
+    placeholder-color: rgba({color5.rgb}, 0.7);
+    padding: 12 10 12 0;
+    text-color: {color7};
+}
+listview {
+    columns: 1;
+    lines: 6;
+    padding: 4 6;
+    fixed-height: false;
+    fixed-columns: true;
+    fixed-lines: false;
+    border: 0;
+    scrollbar: false;
+    spacing: 2;
+}
+scrollbar {
+    width: 0px;
+    handle-width: 0px;
+}
+element {
+    padding: 6 8;
+    border-radius: 10px;
+    background-color: {color0};
+    text-color: {color7};
+    spacing: 0;
+}
+element selected {
+    background-color: {color5};
+    text-color: {color0};
+}
+element-text {
+    background-color: inherit;
+    text-color: inherit;
+    vertical-align: 0.5;
+}
+element-icon {
+    size: 27px;
+    background-color: inherit;
+    padding: 0 6 0 0;
+}
