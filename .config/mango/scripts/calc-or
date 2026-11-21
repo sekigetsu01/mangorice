@@ -1,0 +1,8 @@
+#!/bin/sh
+key=$1
+shift
+if [ -e "${XDG_RUNTIME_DIR:-/tmp}/qs-calc-side" ] &&
+    [ "$(timeout 1 qs ipc -p "$HOME/.config/quickshell" call calcKeys window "$key" 2>/dev/null)" = true ]; then
+    exit 0
+fi
+exec mmsg dispatch "$@"

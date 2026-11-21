@@ -1,0 +1,6 @@
+[filechooser]
+cmd=yazi-picker.sh
+create_help_file=0
+default_dir=$HOME/Downloads
+open_mode=default
+save_mode=default

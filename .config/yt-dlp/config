@@ -1,0 +1,2 @@
+-o %(title)s.%(ext)s
+--remote-components ejs:github

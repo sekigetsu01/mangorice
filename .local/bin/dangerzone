@@ -1,0 +1,3 @@
+#!/bin/sh
+QT_QPA_PLATFORMTHEME=xdgdesktopportal PYTHONPATH="$HOME/.config/qt-tweaks${PYTHONPATH:+:$PYTHONPATH}" \
+    exec /usr/bin/dangerzone "$@"

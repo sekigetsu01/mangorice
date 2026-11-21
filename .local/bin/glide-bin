@@ -1,0 +1,21 @@
+#!/bin/sh
+TABS=$HOME/.config/glide/start-tabs
+
+running() {
+    for l in "$HOME"/.config/glide/glide/*/lock; do
+        p=$(readlink "$l" 2>/dev/null) || continue
+        p=${p##*+}
+        [ -n "$p" ] && kill -0 "$p" 2>/dev/null && grep -q glide "/proc/$p/comm" 2>/dev/null && return 0
+    done
+    return 1
+}
+
+case " $* " in *" --private-window "*) TABS= ;; esac
+if [ -n "$TABS" ] && [ -s "$TABS" ] && ! running; then
+    tabs=$(grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$TABS")
+    set -f
+    # shellcheck disable=SC2086
+    set -- "$@" $tabs
+    set +f
+fi
+TZ=UTC exec /usr/bin/glide-bin "$@"

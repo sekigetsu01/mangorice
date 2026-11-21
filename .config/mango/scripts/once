@@ -1,0 +1,9 @@
+#!/bin/bash
+f=${XDG_RUNTIME_DIR:-/tmp}/once-$1
+shift
+now=${EPOCHREALTIME/[.,]/}
+last=0
+{ read -r last < "$f"; } 2>/dev/null
+echo "$now" > "$f"
+(( now - last >= 0 && now - last < 250000 )) && exit 0
+exec "$@"

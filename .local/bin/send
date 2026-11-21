@@ -1,0 +1,122 @@
+#!/bin/bash
+APP=send
+# shellcheck source-path=SCRIPTDIR source=../lib/common.sh
+. "$HOME/.local/lib/common.sh" || exit 1
+
+STATE=${XDG_STATE_HOME:-$HOME/.local/state}/send
+LAST=$STATE/last
+mkdir -p "$STATE"
+
+hold() { [ -n "${YAZI_ID:-}" ] && { printf '\nPress Enter to go back. '; read -r _; }; }
+fail() { printf '\e[1;31m%s\e[0m\n' "$*" >&2; notify --urgency=critical "Send failed" "$*"; hold; exit 1; }
+
+entry() {
+    local name=$1 to=$2 user="" addr=$2 conf=$HOME/.ssh/config block
+    [[ $to == *@* ]] && { user=${to%%@*}; addr=${to#*@}; }
+    mkdir -p -m 700 "$HOME/.ssh"
+    [ -e "$conf" ] || printf 'Host *\n\tAddKeysToAgent yes\n' > "$conf"
+    block="Host $name"$'\n'"    HostName $addr"$'\n'
+    [ -n "$user" ] && block+="    User $user"$'\n'
+    (umask 077; awk -v n="$name" -v b="$block" '
+        /^[ \t]*[Hh]ost[ \t]/ { skip = (NF == 2 && $2 == n) }
+        /^[ \t]*[Hh]ost[ \t]+\*[ \t]*$/ && !done { printf "%s\n", b; done = 1 }
+        !skip { print }
+        END { if (!done) printf "\n%s", b }' "$conf" > "$conf.new") && mv -f "$conf.new" "$conf" ||
+        fail "couldn't write $conf"
+    say "$name = $to (in ~/.ssh/config)"
+}
+
+case ${1:-} in
+--setup)
+    need ssh ssh-copy-id
+    to=${2:-}
+    [ -n "$to" ] || { read -r -e -p "Computer to send to (user@address, or a name in ~/.ssh/config): " to || exit 1; }
+    [ -n "$to" ] || exit 1
+    key=$HOME/.ssh/id_ed25519
+    if [ ! -e "$key" ]; then
+        step "Making your SSH key (choose its passphrase: you type it once per login)"
+        ssh-keygen -q -t ed25519 -a 100 -C "$USER@$(uname -n)" -f "$key" || fail "couldn't make the SSH key"
+    fi
+    name=${3:-}
+    while :; do
+        if [[ $to == *@* || $to == *.* || $to == *:* ]]; then
+            while [[ -z $name || $name == *[[:space:]@:/*?]* ]]; do
+                read -r -e -p "Name for it (what you'll type to send there, e.g. laptop): " name || exit 1
+            done
+            entry "$name" "$to"
+            to=$name
+        fi
+        step "Putting your key on $to (its password, once)"
+        ssh-copy-id -i "$key.pub" "$to" && break
+        cf=(); [ -f "$HOME/.ssh/config" ] && cf=(-F "$HOME/.ssh/config")
+        read -r addr port < <(ssh "${cf[@]}" -G "$to" 2>/dev/null | awk '$1 == "hostname" { h = $2 } $1 == "port" { p = $2 } END { print h, p }')
+        why=$(timeout 4 bash -c 'exec 3<>"/dev/tcp/$1/$2"' _ "$addr" "${port:-22}" 2>&1)
+        case $? in
+            0) fail "$to ($addr) answered, but the key couldn't be put there (wrong user or password?)" ;;
+        esac
+        [[ $why == *refused* ]] && fail "$to ($addr) is there, but its SSH server is off: run send --receive on it"
+        printf '\n\e[1;33mCan'"'"'t reach %s at %s from here: wrong address, or it'"'"'s on another network.\e[0m\n' "$to" "$addr"
+        say "send --receive on that computer shows its address."
+        if systemd-detect-virt -q --vm 2>/dev/null; then
+            gw=$(ip route 2>/dev/null | awk '/^default/ { print $3; exit }')
+            [ -n "$gw" ] && say "This is a virtual machine: the computer it runs on is $gw from here."
+        fi
+        read -r -e -p "New address for $to (user@address; empty stops): " new || exit 1
+        [ -n "$new" ] || exit 1
+        name=$to to=$new
+    done
+    step "rsync on $to"
+    if ssh "$to" 'command -v rsync >/dev/null'; then
+        say "already there"
+    else
+        ssh -t "$to" 'sudo pacman -S --needed --noconfirm rsync' || fail "couldn't install rsync on $to"
+    fi
+    printf '%s\n' "$to:~/" > "$LAST"
+    step "Done"
+    say "send FILE… (or S in yazi) now offers $to:~/"
+    exit 0 ;;
+--receive)
+    need systemctl
+    step "Turning on the SSH server"
+    sudo systemctl enable --now sshd || fail "couldn't turn on sshd (is openssh installed?)"
+    : > "$STATE/receive"   # sys-setup leaves the SSH server on from now on
+    command -v rsync >/dev/null || sudo pacman -S --needed --noconfirm rsync || fail "couldn't install rsync"
+    step "Done. On the computer that sends, run:"
+    ip -4 -o addr show scope global 2>/dev/null | awk -v u="$USER" '{ split($4, a, "/"); print "  send --setup " u "@" a[1] }'
+    exit 0 ;;
+-h|--help|"")
+    cat <<'EOF'
+send FILE…                       copy files or folders to another computer over SSH (asks HOST:PATH; S in yazi)
+send --setup [USER@ADDR [NAME]]  make an SSH key, copy it there and save it as a name in ~/.ssh/config
+send --receive                   on the computer that receives: turn on its SSH server (sys-setup leaves it on)
+EOF
+    [ -n "${1:-}" ]; exit ;;
+esac
+
+need rsync ssh
+items=()
+for f; do
+    [ -e "$f" ] || fail "no such file: $f"
+    items+=("${f%/}")
+done
+
+last=$(cat "$LAST" 2>/dev/null)
+n=${#items[@]}
+if (( n == 1 )); then what=${items[0]##*/}; else what="$n items"; fi
+printf '\e[1mSend %s to\e[0m (HOST:PATH · empty or Ctrl+C cancels)\n' "$what"
+read -r -e -i "${last:-host:~/}" -p "> " dest || exit 0
+dest=${dest#"${dest%%[![:space:]]*}"}; dest=${dest%"${dest##*[![:space:]]}"}
+[ -n "$dest" ] || exit 0
+if [[ $dest != *:* ]]; then
+    [[ $last == *:* ]] || fail "say which computer: HOST:PATH"
+    dest=${last%%:*}:$dest
+fi
+(( n > 1 )) && [[ $dest != */ && $dest != *: ]] && dest+=/
+printf '%s\n' "$dest" > "$LAST"
+
+echo
+if rsync -avh --partial --progress --mkpath -- "${items[@]}" "$dest"; then
+    notify "Sent" "$what → $dest"
+else
+    fail "$what → $dest didn't finish (send again to pick up where it stopped)"
+fi
