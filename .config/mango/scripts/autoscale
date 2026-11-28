@@ -1,0 +1,38 @@
+#!/bin/bash
+# Every screen scaled to its size: its height divided by AUTOSCALE_BASE (default 800), in eighths and at least 1;
+# done again whenever a monitor is plugged in or out (started by mango's config.conf)
+base=${AUTOSCALE_BASE:-800}
+command -v wlr-randr >/dev/null || { notify-send --app-name=Display "Screens not scaled" "wlr-randr isn't installed (sys-setup installs it)."; exit 1; }
+
+apply() {
+    wlr-randr --json 2>/dev/null | python3 -I -c '
+import json, sys
+base = int(sys.argv[1])
+for o in json.load(sys.stdin):
+    if not o.get("enabled"):
+        continue
+    mode = next((m for m in o.get("modes", []) if m.get("current")), None)
+    if not mode:
+        continue
+    h = mode["width"] if str(o.get("transform", "normal")) in ("90", "270", "flipped-90", "flipped-270") else mode["height"]
+    want = max(1.0, round(h / base * 8) / 8)
+    if abs(float(o.get("scale", 1)) - want) > 0.01:
+        print(o["name"], want)
+' "$base" | while read -r name scale; do
+        wlr-randr --output "$name" --scale "$scale"
+    done
+}
+
+apply
+mmsg watch all-monitors 2>/dev/null | python3 -I -u -c 'import json, sys
+last = None
+for line in sys.stdin:
+    try:
+        names = " ".join(sorted(m["name"] for m in json.loads(line)["monitors"]))
+    except Exception:
+        continue
+    if names != last:
+        last = names
+        print(names)' | while read -r _; do
+    apply
+done
